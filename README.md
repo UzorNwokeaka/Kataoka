@@ -17,3 +17,12 @@ End-to-end machine learning pipeline for predicting Remaining Useful Life (RUL) 
 - Gradio (planned)
 
 ## Project Structure
+
+## Data Preprocessing
+
+- Handled missing values using forward/backward fill per robot
+- Removed unrealistic sensor values
+- Applied IQR-based outlier capping
+- Standardized numerical features using StandardScaler
+- Encoded categorical variables using one-hot encoding
+- Produced final ML-ready dataset
