@@ -26,3 +26,12 @@ End-to-end machine learning pipeline for predicting Remaining Useful Life (RUL) 
 - Standardized numerical features using StandardScaler
 - Encoded categorical variables using one-hot encoding
 - Produced final ML-ready dataset
+
+## Dataset
+
+- Full dataset is generated via pipeline:
+  - `build_rul_dataset.py`
+  - `preprocess_data.py`
+
+- A sample dataset is provided for quick testing:
+  - `data/sample/sample_data.csv`
