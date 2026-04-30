@@ -1,0 +1,97 @@
+feature,importance
+num__lifecycle_progress,0.9065912353027444
+cat__last_issue_detected_motor_failure,0.042220742261669005
+num__maintenance_count_to_date,0.01601840277606776
+cat__last_issue_detected_bearing_failure,0.0067686514247149695
+num__time_since_last_maintenance_hours,0.0059508779918571696
+num__cumulative_energy_consumption,0.0037163066007318934
+num__time_index,0.002452905442774944
+num__cumulative_runtime_hours,0.0023045718597285714
+num__energy_per_runtime_hour,0.001857075328449728
+num__last_downtime_hours,0.0016568241549804903
+cat__last_issue_detected_error code 0x47,0.0015484025350045944
+num__motor_temperature_rolling_std_7d,0.0014246434506270478
+cat__factory_location_Hokkaido Lab,0.0012442964351585064
+cat__last_issue_detected_joint_wear,0.0009853902794511795
+num__vibration_level_rolling_mean_7d,0.0009687741790564644
+cat__last_maintenance_type_replacement,0.0009338712372467851
+cat__last_maintenance_type_lubrication,0.0009228184689212663
+num__vibration_level_rolling_std_7d,0.0007598136824474771
+cat__factory_location_Fukuoka Center,0.0006104664510195926
+cat__last_maintenance_type_repair,0.0003368303501066788
+num__vibration_level_rolling_std_72h,0.0001892849061758715
+num__motor_temperature_rolling_mean_7d,8.456904628412579e-05
+"cat__operating_environment_Clean Room (20-22°C, 40% RH)",5.2345493362327576e-05
+num__power_consumption_rolling_mean_7d,5.180931966563379e-05
+num__torque_load_rolling_std_72h,5.055926426116526e-05
+"cat__operating_environment_Heavy Industrial (30-40°C, 70% RH)",4.287625758045292e-05
+cat__factory_location_Tokyo Factory,3.391378469152942e-05
+num__torque_load_rolling_mean_7d,2.956894526484729e-05
+num__vibration_level_rolling_mean_24h,2.9134941047568154e-05
+num__power_consumption_rolling_std_7d,2.8314483045073156e-05
+num__vibration_level_rolling_mean_72h,2.5284363065251725e-05
+num__power_consumption_slope_72h,2.511768044025362e-05
+num__torque_load_slope_7d,2.3233493885586815e-05
+cat__last_maintenance_type_calibration,1.3856847781379355e-05
+"cat__operating_environment_Standard Factory (25-30°C, 60% RH)",1.377108378320849e-05
+num__power_consumption_rolling_mean_24h,1.289150044363296e-05
+num__vibration_level_slope_7d,6.943385456541794e-06
+num__torque_load_rolling_std_24h,4.216790149638956e-06
+cat__model_type_CONVEYOR-C2,2.9310380748838867e-06
+num__motor_temperature_rolling_std_72h,2.1027031738926213e-06
+num__power_consumption_rolling_std_24h,1.7473192706009311e-06
+cat__model_type_ASSEMBLY-A3,1.7298466631901992e-06
+num__motor_temperature_slope_24h,5.076474861959058e-07
+num__motor_temperature,3.896461887297337e-07
+num__vibration_level_slope_24h,0.0
+num__vibration_level_slope_72h,0.0
+num__power_consumption,0.0
+num__vibration_level,0.0
+num__torque_load_rolling_mean_72h,0.0
+num__torque_load_slope_24h,0.0
+num__motor_temperature_slope_7d,0.0
+num__torque_load_rolling_mean_24h,0.0
+num__motor_temperature_rolling_std_24h,0.0
+num__motor_temperature_rolling_mean_24h,0.0
+num__motor_temperature_rolling_mean_72h,0.0
+num__motor_temperature_slope_72h,0.0
+num__torque_load,0.0
+num__vibration_level_rolling_std_24h,0.0
+num__power_consumption_rolling_mean_72h,0.0
+num__power_consumption_slope_24h,0.0
+num__power_consumption_rolling_std_72h,0.0
+num__power_consumption_slope_7d,0.0
+num__torque_load_slope_72h,0.0
+num__torque_load_rolling_std_7d,0.0
+num__temperature_high_flag,0.0
+num__vibration_high_flag,0.0
+num__power_consumption_second_diff,0.0
+num__power_consumption_first_diff,0.0
+num__torque_load_second_diff,0.0
+num__torque_load_first_diff,0.0
+num__motor_temperature_second_diff,0.0
+num__motor_temperature_first_diff,0.0
+num__vibration_level_second_diff,0.0
+num__vibration_level_first_diff,0.0
+num__vibration_runtime_wear_index,0.0
+num__thermal_runtime_stress_index,0.0
+num__load_stress_index,0.0
+num__vibration_torque_stress_index,0.0
+num__torque_power_stress_index,0.0
+num__thermal_power_stress_index,0.0
+"cat__operating_environment_Climate Controlled (22-25°C, 50% RH)",0.0
+cat__factory_location_Osaka Plant,0.0
+cat__factory_location_Nagoya Site,0.0
+num__power_high_flag,0.0
+cat__model_type_ARM-X7,0.0
+num__multi_sensor_stress_flag,0.0
+cat__model_type_ARM-X9,0.0
+cat__model_type_WELDING-W5,0.0
+num__torque_high_flag,0.0
+cat__last_issue_detected_Minor wear detected,0.0
+cat__last_maintenance_type_inspection,0.0
+cat__last_maintenance_type_none,0.0
+cat__last_issue_detected_encoder_drift,0.0
+cat__last_issue_detected_No issue found - routine check,0.0
+cat__last_issue_detected_none,0.0
+cat__last_issue_detected_unexpected shutdown,0.0
