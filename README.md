@@ -1,37 +1,35 @@
-# RUL Predictive Maintenance System
+# RUL Predictive Maintenance System (Kataoka Robotics)
 
-End-to-end machine learning pipeline for predicting Remaining Useful Life (RUL) of industrial robotic systems using time-series sensor data.
+## Overview
+This project builds an end-to-end machine learning system to estimate Remaining Useful Life (RUL) of industrial robotic components using time-series sensor data.
 
-## Features
-- Data integration across multiple tables
-- Synthetic data augmentation for sparse failure events
-- RUL target engineering
-- Feature engineering (rolling statistics, degradation trends)
-- ML-ready dataset generation
+## Key Features
+- Time-series alignment of sensor, maintenance, and failure data
+- Advanced feature engineering (degradation trends, stress indices)
+- ML models (Random Forest, Gradient Boosting, Extra Trees)
+- MLflow experiment tracking
+- Achieved R² = 0.64 on test data
+
+## Model Performance
+- Best Model: Gradient Boosting
+- Test R²: 0.64
+- MAE: ~64 hours
 
 ## Tech Stack
-- Python
-- Pandas, NumPy
-- Scikit-learn
-- MLflow (planned)
-- Gradio (planned)
+- Python, Pandas, NumPy
+- scikit-learn
+- MLflow
+- Gradio (deployment)
 
-## Project Structure
+## Pipeline
+1. Data ingestion
+2. Time-series alignment
+3. Feature engineering
+4. Model training & tracking
+5. Deployment (Gradio)
 
-## Data Preprocessing
+## Note
+Large datasets and models are excluded from GitHub for performance reasons.
 
-- Handled missing values using forward/backward fill per robot
-- Removed unrealistic sensor values
-- Applied IQR-based outlier capping
-- Standardized numerical features using StandardScaler
-- Encoded categorical variables using one-hot encoding
-- Produced final ML-ready dataset
-
-## Dataset
-
-- Full dataset is generated via pipeline:
-  - `build_rul_dataset.py`
-  - `preprocess_data.py`
-
-- A sample dataset is provided for quick testing:
-  - `data/sample/sample_data.csv`
+## 🔗 Author
+Uzor Nwokeaka
