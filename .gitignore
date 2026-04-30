@@ -1,17 +1,24 @@
-# Virtual environment
+# Data files (DO NOT PUSH LARGE DATA)
+data/processed/
+data/raw/
+data/sample/
+
+# Models
+models/*.pkl
+
+# MLflow
+mlruns/
+
+# Environment
 .venv/
 
 # Python cache
 __pycache__/
 *.pyc
 
-# Jupyter
+# Jupyter checkpoints
 .ipynb_checkpoints/
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
-
-# Large data (optional)
-data/raw/
-data/processed/rul_cleaned.csv
