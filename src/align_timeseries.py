@@ -34,8 +34,12 @@ print("Failures:", failures.shape)
 # Convert datetime columns
 # -----------------------------
 sensor["timestamp"] = pd.to_datetime(sensor["timestamp"], errors="coerce")
-robots["installation_date"] = pd.to_datetime(robots["installation_date"], errors="coerce")
-maintenance["maintenance_time"] = pd.to_datetime(maintenance["maintenance_time"], errors="coerce")
+robots["installation_date"] = pd.to_datetime(
+    robots["installation_date"], errors="coerce"
+)
+maintenance["maintenance_time"] = pd.to_datetime(
+    maintenance["maintenance_time"], errors="coerce"
+)
 failures["failure_time"] = pd.to_datetime(failures["failure_time"], errors="coerce")
 
 # -----------------------------
@@ -46,17 +50,15 @@ maintenance = maintenance.dropna(subset=["robot_id", "maintenance_time"])
 failures = failures.dropna(subset=["robot_id", "failure_time"])
 
 sensor = sensor.sort_values(["robot_id", "timestamp"]).reset_index(drop=True)
-maintenance = maintenance.sort_values(["robot_id", "maintenance_time"]).reset_index(drop=True)
+maintenance = maintenance.sort_values(["robot_id", "maintenance_time"]).reset_index(
+    drop=True
+)
 failures = failures.sort_values(["robot_id", "failure_time"]).reset_index(drop=True)
 
 # -----------------------------
 # Add static robot metadata
 # -----------------------------
-aligned = sensor.merge(
-    robots,
-    on="robot_id",
-    how="left"
-)
+aligned = sensor.merge(robots, on="robot_id", how="left")
 
 print("\nAfter robot metadata merge:", aligned.shape)
 
@@ -85,31 +87,26 @@ for robot_id, robot_sensor in aligned.groupby("robot_id"):
     merged = pd.merge_asof(
         robot_sensor,
         robot_maint[
-            [
-                "maintenance_time",
-                "maintenance_type",
-                "issue_detected",
-                "downtime_hours"
-            ]
+            ["maintenance_time", "maintenance_type", "issue_detected", "downtime_hours"]
         ],
         left_on="timestamp",
         right_on="maintenance_time",
-        direction="backward"
+        direction="backward",
     )
 
-    merged = merged.rename(columns={
-        "maintenance_time": "last_maintenance_time",
-        "maintenance_type": "last_maintenance_type",
-        "issue_detected": "last_issue_detected",
-        "downtime_hours": "last_downtime_hours"
-    })
+    merged = merged.rename(
+        columns={
+            "maintenance_time": "last_maintenance_time",
+            "maintenance_type": "last_maintenance_type",
+            "issue_detected": "last_issue_detected",
+            "downtime_hours": "last_downtime_hours",
+        }
+    )
 
     # Count maintenance events up to current timestamp
     maint_times = robot_maint["maintenance_time"].values
     merged["maintenance_count_to_date"] = np.searchsorted(
-        maint_times,
-        merged["timestamp"].values,
-        side="right"
+        maint_times, merged["timestamp"].values, side="right"
     )
 
     maintenance_features.append(merged)
@@ -126,9 +123,9 @@ aligned["time_since_last_maintenance_hours"] = (
 aligned["last_maintenance_type"] = aligned["last_maintenance_type"].fillna("none")
 aligned["last_issue_detected"] = aligned["last_issue_detected"].fillna("none")
 aligned["last_downtime_hours"] = aligned["last_downtime_hours"].fillna(0)
-aligned["time_since_last_maintenance_hours"] = (
-    aligned["time_since_last_maintenance_hours"].fillna(0)
-)
+aligned["time_since_last_maintenance_hours"] = aligned[
+    "time_since_last_maintenance_hours"
+].fillna(0)
 
 print("After maintenance alignment:", aligned.shape)
 
@@ -150,26 +147,21 @@ for robot_id, robot_sensor in aligned.groupby("robot_id"):
 
     merged = pd.merge_asof(
         robot_sensor,
-        robot_failures[
-            [
-                "failure_time",
-                "failure_type",
-                "root_cause",
-                "is_simulated"
-            ]
-        ],
+        robot_failures[["failure_time", "failure_type", "root_cause", "is_simulated"]],
         left_on="timestamp",
         right_on="failure_time",
-        direction="forward"
+        direction="forward",
     )
 
     merged = merged.dropna(subset=["failure_time"])
 
-    merged = merged.rename(columns={
-        "failure_time": "next_failure_time",
-        "failure_type": "next_failure_type",
-        "root_cause": "next_failure_root_cause"
-    })
+    merged = merged.rename(
+        columns={
+            "failure_time": "next_failure_time",
+            "failure_type": "next_failure_type",
+            "root_cause": "next_failure_root_cause",
+        }
+    )
 
     merged["RUL_hours"] = (
         merged["next_failure_time"] - merged["timestamp"]

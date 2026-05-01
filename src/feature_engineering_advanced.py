@@ -13,7 +13,7 @@ date_cols = [
     "timestamp",
     "last_maintenance_time",
     "next_failure_time",
-    "installation_date"
+    "installation_date",
 ]
 
 for col in date_cols:
@@ -26,12 +26,13 @@ sensor_cols = [
     "vibration_level",
     "motor_temperature",
     "torque_load",
-    "power_consumption"
+    "power_consumption",
 ]
 
 for col in sensor_cols:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce")
+
 
 # -----------------------------
 # Helper: rolling slope
@@ -50,11 +51,8 @@ def rolling_slope(values):
     slope = np.polyfit(x, values, 1)[0]
     return slope
 
-windows = {
-    "24h": 4,
-    "72h": 12,
-    "7d": 28
-}
+
+windows = {"24h": 4, "72h": 12, "7d": 28}
 
 # -----------------------------
 # 1. Wear trend slope features
@@ -62,20 +60,16 @@ windows = {
 for col in sensor_cols:
     if col in df.columns:
         for label, window in windows.items():
-            df[f"{col}_slope_{label}"] = (
-                df.groupby("robot_id")[col]
-                .transform(
-                    lambda x: x.rolling(window=window, min_periods=2)
-                    .apply(rolling_slope, raw=False)
+            df[f"{col}_slope_{label}"] = df.groupby("robot_id")[col].transform(
+                lambda x: x.rolling(window=window, min_periods=2).apply(
+                    rolling_slope, raw=False
                 )
             )
 
 # -----------------------------
 # 2. Load stress index: torque × runtime
 # -----------------------------
-df["load_stress_index"] = (
-    df["torque_load"] * df["cumulative_runtime_hours"]
-)
+df["load_stress_index"] = df["torque_load"] * df["cumulative_runtime_hours"]
 
 df["vibration_runtime_wear_index"] = (
     df["vibration_level"] * df["cumulative_runtime_hours"]
@@ -89,58 +83,47 @@ df["thermal_runtime_stress_index"] = (
 # 3. Energy consumption trends
 # -----------------------------
 for label, window in windows.items():
-    df[f"power_consumption_change_{label}"] = (
-        df.groupby("robot_id")["power_consumption"]
-        .transform(lambda x: x.diff(periods=window))
-    )
+    df[f"power_consumption_change_{label}"] = df.groupby("robot_id")[
+        "power_consumption"
+    ].transform(lambda x: x.diff(periods=window))
 
-    df[f"power_consumption_pct_change_{label}"] = (
-        df.groupby("robot_id")["power_consumption"]
-        .transform(lambda x: x.pct_change(periods=window))
-    )
+    df[f"power_consumption_pct_change_{label}"] = df.groupby("robot_id")[
+        "power_consumption"
+    ].transform(lambda x: x.pct_change(periods=window))
 
-    df[f"energy_trend_slope_{label}"] = (
-        df.groupby("robot_id")["power_consumption"]
-        .transform(
-            lambda x: x.rolling(window=window, min_periods=2)
-            .apply(rolling_slope, raw=False)
+    df[f"energy_trend_slope_{label}"] = df.groupby("robot_id")[
+        "power_consumption"
+    ].transform(
+        lambda x: x.rolling(window=window, min_periods=2).apply(
+            rolling_slope, raw=False
         )
     )
 
-df["cumulative_energy_consumption"] = (
-    df.groupby("robot_id")["power_consumption"].cumsum()
-)
+df["cumulative_energy_consumption"] = df.groupby("robot_id")[
+    "power_consumption"
+].cumsum()
 
-df["energy_per_runtime_hour"] = (
-    df["cumulative_energy_consumption"]
-    / df["cumulative_runtime_hours"].replace(0, np.nan)
-)
+df["energy_per_runtime_hour"] = df["cumulative_energy_consumption"] / df[
+    "cumulative_runtime_hours"
+].replace(0, np.nan)
 
 # -----------------------------
 # 4. Early degradation indicators
 # -----------------------------
 df["vibration_high_flag"] = np.where(
-    df["vibration_level"] > df["vibration_level"].quantile(0.75),
-    1,
-    0
+    df["vibration_level"] > df["vibration_level"].quantile(0.75), 1, 0
 )
 
 df["temperature_high_flag"] = np.where(
-    df["motor_temperature"] > df["motor_temperature"].quantile(0.75),
-    1,
-    0
+    df["motor_temperature"] > df["motor_temperature"].quantile(0.75), 1, 0
 )
 
 df["torque_high_flag"] = np.where(
-    df["torque_load"] > df["torque_load"].quantile(0.75),
-    1,
-    0
+    df["torque_load"] > df["torque_load"].quantile(0.75), 1, 0
 )
 
 df["power_high_flag"] = np.where(
-    df["power_consumption"] > df["power_consumption"].quantile(0.75),
-    1,
-    0
+    df["power_consumption"] > df["power_consumption"].quantile(0.75), 1, 0
 )
 
 df["multi_sensor_stress_flag"] = np.where(
@@ -149,9 +132,10 @@ df["multi_sensor_stress_flag"] = np.where(
         + df["temperature_high_flag"]
         + df["torque_high_flag"]
         + df["power_high_flag"]
-    ) >= 2,
+    )
+    >= 2,
     1,
-    0
+    0,
 )
 
 df["severe_multi_sensor_stress_flag"] = np.where(
@@ -160,44 +144,37 @@ df["severe_multi_sensor_stress_flag"] = np.where(
         + df["temperature_high_flag"]
         + df["torque_high_flag"]
         + df["power_high_flag"]
-    ) >= 3,
+    )
+    >= 3,
     1,
-    0
+    0,
 )
 
 # -----------------------------
 # 5. Acceleration / instability features
 # -----------------------------
 for col in sensor_cols:
-    df[f"{col}_first_diff"] = (
-        df.groupby("robot_id")[col].diff()
-    )
+    df[f"{col}_first_diff"] = df.groupby("robot_id")[col].diff()
 
-    df[f"{col}_second_diff"] = (
-        df.groupby("robot_id")[f"{col}_first_diff"].diff()
-    )
+    df[f"{col}_second_diff"] = df.groupby("robot_id")[f"{col}_first_diff"].diff()
 
-    df[f"{col}_volatility_72h"] = (
-        df.groupby("robot_id")[col]
-        .transform(lambda x: x.rolling(window=12, min_periods=2).std())
+    df[f"{col}_volatility_72h"] = df.groupby("robot_id")[col].transform(
+        lambda x: x.rolling(window=12, min_periods=2).std()
     )
 
 # -----------------------------
 # 6. Maintenance-adjusted degradation features
 # -----------------------------
 df["stress_since_last_maintenance"] = (
-    df["torque_power_stress_index"]
-    * df["time_since_last_maintenance_hours"]
+    df["torque_power_stress_index"] * df["time_since_last_maintenance_hours"]
 )
 
 df["vibration_since_last_maintenance"] = (
-    df["vibration_level"]
-    * df["time_since_last_maintenance_hours"]
+    df["vibration_level"] * df["time_since_last_maintenance_hours"]
 )
 
 df["temperature_since_last_maintenance"] = (
-    df["motor_temperature"]
-    * df["time_since_last_maintenance_hours"]
+    df["motor_temperature"] * df["time_since_last_maintenance_hours"]
 )
 
 # -----------------------------
@@ -209,7 +186,7 @@ pressure_components = [
     "torque_load",
     "power_consumption",
     "load_stress_index",
-    "energy_per_runtime_hour"
+    "energy_per_runtime_hour",
 ]
 
 for col in pressure_components:
@@ -269,7 +246,7 @@ advanced_cols = [
     "severe_multi_sensor_stress_flag",
     "degradation_pressure_score",
     "early_failure_zone",
-    "critical_failure_zone"
+    "critical_failure_zone",
 ]
 
 print("\nAdvanced feature examples:")

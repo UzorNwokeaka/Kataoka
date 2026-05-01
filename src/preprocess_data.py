@@ -63,13 +63,14 @@ sensor_cols = [
     "vibration_level",
     "motor_temperature",
     "torque_load",
-    "power_consumption"
+    "power_consumption",
 ]
 
 for col in sensor_cols:
     if col in df.columns:
         df = df[df[col].notna()]
         df = df[df[col] >= 0]
+
 
 # -----------------------------
 # Outlier handling using IQR capping
@@ -97,7 +98,7 @@ outlier_cols = [
     "vibration_level_rolling_mean_24h",
     "motor_temperature_rolling_mean_24h",
     "torque_load_rolling_mean_24h",
-    "power_consumption_rolling_mean_24h"
+    "power_consumption_rolling_mean_24h",
 ]
 
 for col in outlier_cols:
@@ -116,7 +117,7 @@ drop_cols = [
     "installation_date",
     "failure_id",
     "failure_time",
-    "root_cause"
+    "root_cause",
 ]
 
 df = df.drop(columns=drop_cols, errors="ignore")
@@ -133,16 +134,9 @@ if "robot_id" in categorical_cols:
 
 df = df.drop(columns=["robot_id"], errors="ignore")
 
-categorical_cols = [
-    col for col in categorical_cols
-    if col in df.columns
-]
+categorical_cols = [col for col in categorical_cols if col in df.columns]
 
-df = pd.get_dummies(
-    df,
-    columns=categorical_cols,
-    drop_first=True
-)
+df = pd.get_dummies(df, columns=categorical_cols, drop_first=True)
 
 # -----------------------------
 # Separate target before scaling
@@ -164,15 +158,9 @@ X = X.astype(float)
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-X_scaled_df = pd.DataFrame(
-    X_scaled,
-    columns=X.columns
-)
+X_scaled_df = pd.DataFrame(X_scaled, columns=X.columns)
 
-cleaned_df = pd.concat(
-    [X_scaled_df, y.reset_index(drop=True)],
-    axis=1
-)
+cleaned_df = pd.concat([X_scaled_df, y.reset_index(drop=True)], axis=1)
 
 # -----------------------------
 # Final validation

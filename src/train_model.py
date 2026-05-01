@@ -316,8 +316,8 @@
 # print(results_df)
 
 
-
 import warnings
+
 warnings.filterwarnings("ignore")
 
 from pathlib import Path
@@ -332,15 +332,18 @@ from sklearn.model_selection import TimeSeriesSplit, cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, ExtraTreesRegressor
+from sklearn.ensemble import (
+    RandomForestRegressor,
+    GradientBoostingRegressor,
+    ExtraTreesRegressor,
+)
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
 
 # ============================================================
 # SETTINGS
 # ============================================================
-FAST_MODE = True          # True = quick run, False = final full training
-USE_LOG_TARGET = True     # Helps stabilise RUL prediction
+FAST_MODE = True  # True = quick run, False = final full training
+USE_LOG_TARGET = True  # Helps stabilise RUL prediction
 
 INPUT_PATH = Path("data/processed/rul_fixed_lifecycle_dataset.csv")
 
@@ -409,7 +412,7 @@ leakage_cols = [
     "early_failure_zone",
     "critical_failure_zone",
     "is_simulated",
-    "remaining_lifecycle_ratio"  # too directly related to target
+    "remaining_lifecycle_ratio",  # too directly related to target
 ]
 
 identifier_cols = [
@@ -417,7 +420,7 @@ identifier_cols = [
     "robot_id",
     "timestamp",
     "last_maintenance_time",
-    "installation_date"
+    "installation_date",
 ]
 
 drop_cols = [c for c in leakage_cols + identifier_cols if c in df.columns]
@@ -428,7 +431,9 @@ y = df[TARGET]
 X = X.replace([np.inf, -np.inf], np.nan)
 
 numeric_features = X.select_dtypes(include=[np.number]).columns.tolist()
-categorical_features = X.select_dtypes(include=["object", "category", "bool"]).columns.tolist()
+categorical_features = X.select_dtypes(
+    include=["object", "category", "bool"]
+).columns.tolist()
 
 X[numeric_features] = X[numeric_features].fillna(0)
 
@@ -460,9 +465,9 @@ print("Test shape:", X_test.shape)
 preprocessor = ColumnTransformer(
     transformers=[
         ("num", StandardScaler(), numeric_features),
-        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features)
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
     ],
-    remainder="drop"
+    remainder="drop",
 )
 
 
@@ -480,7 +485,7 @@ if FAST_MODE:
             min_samples_split=20,
             max_features="sqrt",
             random_state=42,
-            n_jobs=-1
+            n_jobs=-1,
         ),
         "GradientBoosting_OPT_FAST": GradientBoostingRegressor(
             n_estimators=120,
@@ -489,7 +494,7 @@ if FAST_MODE:
             min_samples_leaf=12,
             min_samples_split=20,
             subsample=0.85,
-            random_state=42
+            random_state=42,
         ),
         "ExtraTrees_OPT_FAST": ExtraTreesRegressor(
             n_estimators=120,
@@ -498,8 +503,8 @@ if FAST_MODE:
             min_samples_split=20,
             max_features="sqrt",
             random_state=42,
-            n_jobs=-1
-        )
+            n_jobs=-1,
+        ),
     }
 
 else:
@@ -513,7 +518,7 @@ else:
             min_samples_split=16,
             max_features="sqrt",
             random_state=42,
-            n_jobs=-1
+            n_jobs=-1,
         ),
         "GradientBoosting_OPT_FULL": GradientBoostingRegressor(
             n_estimators=450,
@@ -522,7 +527,7 @@ else:
             min_samples_leaf=10,
             min_samples_split=20,
             subsample=0.85,
-            random_state=42
+            random_state=42,
         ),
         "ExtraTrees_OPT_FULL": ExtraTreesRegressor(
             n_estimators=350,
@@ -531,8 +536,8 @@ else:
             min_samples_split=12,
             max_features="sqrt",
             random_state=42,
-            n_jobs=-1
-        )
+            n_jobs=-1,
+        ),
     }
 
 
@@ -541,16 +546,11 @@ def maybe_wrap_target(model):
         return model
 
     return TransformedTargetRegressor(
-        regressor=model,
-        func=np.log1p,
-        inverse_func=np.expm1
+        regressor=model, func=np.log1p, inverse_func=np.expm1
     )
 
 
-models = {
-    name: maybe_wrap_target(model)
-    for name, model in base_models.items()
-}
+models = {name: maybe_wrap_target(model) for name, model in base_models.items()}
 
 
 # ============================================================
@@ -562,7 +562,7 @@ def evaluate_model(y_true, y_pred):
     return {
         "MAE": mean_absolute_error(y_true, y_pred),
         "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
-        "R2": r2_score(y_true, y_pred)
+        "R2": r2_score(y_true, y_pred),
     }
 
 
@@ -580,12 +580,7 @@ tscv = TimeSeriesSplit(n_splits=n_splits)
 for model_name, model in models.items():
     print(f"\nTraining model: {model_name}")
 
-    pipeline = Pipeline(
-        steps=[
-            ("preprocessor", preprocessor),
-            ("model", model)
-        ]
-    )
+    pipeline = Pipeline(steps=[("preprocessor", preprocessor), ("model", model)])
 
     with mlflow.start_run(run_name=model_name):
         cv_scores = cross_validate(
@@ -596,10 +591,10 @@ for model_name, model in models.items():
             scoring={
                 "mae": "neg_mean_absolute_error",
                 "rmse": "neg_root_mean_squared_error",
-                "r2": "r2"
+                "r2": "r2",
             },
             n_jobs=-1,
-            return_train_score=True
+            return_train_score=True,
         )
 
         cv_mae = -cv_scores["test_mae"].mean()
@@ -637,20 +632,22 @@ for model_name, model in models.items():
 
         mlflow.sklearn.log_model(pipeline, name="model")
 
-        results.append({
-            "mode": "FAST" if FAST_MODE else "FULL",
-            "use_log_target": USE_LOG_TARGET,
-            "model": model_name,
-            "cv_mae": cv_mae,
-            "cv_rmse": cv_rmse,
-            "cv_r2": cv_r2,
-            "train_mae": train_metrics["MAE"],
-            "train_rmse": train_metrics["RMSE"],
-            "train_r2": train_metrics["R2"],
-            "test_mae": test_metrics["MAE"],
-            "test_rmse": test_metrics["RMSE"],
-            "test_r2": test_metrics["R2"]
-        })
+        results.append(
+            {
+                "mode": "FAST" if FAST_MODE else "FULL",
+                "use_log_target": USE_LOG_TARGET,
+                "model": model_name,
+                "cv_mae": cv_mae,
+                "cv_rmse": cv_rmse,
+                "cv_r2": cv_r2,
+                "train_mae": train_metrics["MAE"],
+                "train_rmse": train_metrics["RMSE"],
+                "train_r2": train_metrics["R2"],
+                "test_mae": test_metrics["MAE"],
+                "test_rmse": test_metrics["RMSE"],
+                "test_r2": test_metrics["R2"],
+            }
+        )
 
         print("CV MAE:", round(cv_mae, 3))
         print("CV RMSE:", round(cv_rmse, 3))
@@ -705,10 +702,9 @@ try:
     if hasattr(estimator, "feature_importances_"):
         importances = estimator.feature_importances_
 
-        importance_df = pd.DataFrame({
-            "feature": feature_names,
-            "importance": importances
-        }).sort_values("importance", ascending=False)
+        importance_df = pd.DataFrame(
+            {"feature": feature_names, "importance": importances}
+        ).sort_values("importance", ascending=False)
 
         importance_df.to_csv(FEATURE_IMPORTANCE_PATH, index=False)
 

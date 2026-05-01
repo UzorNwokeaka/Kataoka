@@ -25,8 +25,12 @@ robots = pd.read_csv(ROBOT_PATH)
 maintenance = pd.read_csv(MAINT_PATH)
 
 sensor["timestamp"] = pd.to_datetime(sensor["timestamp"], errors="coerce")
-robots["installation_date"] = pd.to_datetime(robots["installation_date"], errors="coerce")
-maintenance["maintenance_time"] = pd.to_datetime(maintenance["maintenance_time"], errors="coerce")
+robots["installation_date"] = pd.to_datetime(
+    robots["installation_date"], errors="coerce"
+)
+maintenance["maintenance_time"] = pd.to_datetime(
+    maintenance["maintenance_time"], errors="coerce"
+)
 
 sensor = sensor.dropna(subset=["robot_id", "timestamp"])
 sensor = sensor.sort_values(["robot_id", "timestamp"]).reset_index(drop=True)
@@ -88,30 +92,34 @@ for _, row in df.iterrows():
     ts = row["timestamp"]
 
     past_maintenance = maintenance[
-        (maintenance["robot_id"] == robot_id)
-        & (maintenance["maintenance_time"] <= ts)
+        (maintenance["robot_id"] == robot_id) & (maintenance["maintenance_time"] <= ts)
     ]
 
     if past_maintenance.empty:
-        maintenance_features.append({
-            "last_maintenance_type": "none",
-            "last_issue_detected": "none",
-            "last_downtime_hours": 0,
-            "maintenance_count_to_date": 0,
-            "time_since_last_maintenance_hours": 0
-        })
+        maintenance_features.append(
+            {
+                "last_maintenance_type": "none",
+                "last_issue_detected": "none",
+                "last_downtime_hours": 0,
+                "maintenance_count_to_date": 0,
+                "time_since_last_maintenance_hours": 0,
+            }
+        )
     else:
         last_event = past_maintenance.sort_values("maintenance_time").iloc[-1]
 
-        maintenance_features.append({
-            "last_maintenance_type": last_event.get("maintenance_type", "unknown"),
-            "last_issue_detected": last_event.get("issue_detected", "unknown"),
-            "last_downtime_hours": last_event.get("downtime_hours", 0),
-            "maintenance_count_to_date": len(past_maintenance),
-            "time_since_last_maintenance_hours": (
-                ts - last_event["maintenance_time"]
-            ).total_seconds() / 3600
-        })
+        maintenance_features.append(
+            {
+                "last_maintenance_type": last_event.get("maintenance_type", "unknown"),
+                "last_issue_detected": last_event.get("issue_detected", "unknown"),
+                "last_downtime_hours": last_event.get("downtime_hours", 0),
+                "maintenance_count_to_date": len(past_maintenance),
+                "time_since_last_maintenance_hours": (
+                    ts - last_event["maintenance_time"]
+                ).total_seconds()
+                / 3600,
+            }
+        )
 
 maintenance_features = pd.DataFrame(maintenance_features)
 df = pd.concat([df.reset_index(drop=True), maintenance_features], axis=1)
@@ -125,17 +133,14 @@ sensor_cols = [
     "vibration_level",
     "motor_temperature",
     "torque_load",
-    "power_consumption"
+    "power_consumption",
 ]
 
 for col in sensor_cols:
     df[col] = pd.to_numeric(df[col], errors="coerce")
 
-windows = {
-    "24h": 4,
-    "72h": 12,
-    "7d": 28
-}
+windows = {"24h": 4, "72h": 12, "7d": 28}
+
 
 def rolling_slope(values):
     values = np.array(values)
@@ -148,24 +153,19 @@ def rolling_slope(values):
 
     return np.polyfit(x, values, 1)[0]
 
+
 for col in sensor_cols:
     for label, window in windows.items():
-        df[f"{col}_rolling_mean_{label}"] = (
-            df.groupby("robot_id")[col]
-            .transform(lambda x: x.rolling(window, min_periods=1).mean())
+        df[f"{col}_rolling_mean_{label}"] = df.groupby("robot_id")[col].transform(
+            lambda x: x.rolling(window, min_periods=1).mean()
         )
 
-        df[f"{col}_rolling_std_{label}"] = (
-            df.groupby("robot_id")[col]
-            .transform(lambda x: x.rolling(window, min_periods=1).std())
+        df[f"{col}_rolling_std_{label}"] = df.groupby("robot_id")[col].transform(
+            lambda x: x.rolling(window, min_periods=1).std()
         )
 
-        df[f"{col}_slope_{label}"] = (
-            df.groupby("robot_id")[col]
-            .transform(
-                lambda x: x.rolling(window, min_periods=2)
-                .apply(rolling_slope, raw=False)
-            )
+        df[f"{col}_slope_{label}"] = df.groupby("robot_id")[col].transform(
+            lambda x: x.rolling(window, min_periods=2).apply(rolling_slope, raw=False)
         )
 
 # Runtime features
@@ -177,18 +177,21 @@ df["thermal_power_stress_index"] = df["motor_temperature"] * df["power_consumpti
 df["vibration_torque_stress_index"] = df["vibration_level"] * df["torque_load"]
 
 df["load_stress_index"] = df["torque_load"] * df["cumulative_runtime_hours"]
-df["vibration_runtime_wear_index"] = df["vibration_level"] * df["cumulative_runtime_hours"]
-df["thermal_runtime_stress_index"] = df["motor_temperature"] * df["cumulative_runtime_hours"]
+df["vibration_runtime_wear_index"] = (
+    df["vibration_level"] * df["cumulative_runtime_hours"]
+)
+df["thermal_runtime_stress_index"] = (
+    df["motor_temperature"] * df["cumulative_runtime_hours"]
+)
 
 # Energy features
-df["cumulative_energy_consumption"] = (
-    df.groupby("robot_id")["power_consumption"].cumsum()
-)
+df["cumulative_energy_consumption"] = df.groupby("robot_id")[
+    "power_consumption"
+].cumsum()
 
-df["energy_per_runtime_hour"] = (
-    df["cumulative_energy_consumption"]
-    / df["cumulative_runtime_hours"].replace(0, np.nan)
-)
+df["energy_per_runtime_hour"] = df["cumulative_energy_consumption"] / df[
+    "cumulative_runtime_hours"
+].replace(0, np.nan)
 
 # Sensor change features
 for col in sensor_cols:
@@ -204,9 +207,9 @@ df["temperature_high_flag"] = (
     df["motor_temperature"] > df["motor_temperature"].quantile(0.75)
 ).astype(int)
 
-df["torque_high_flag"] = (
-    df["torque_load"] > df["torque_load"].quantile(0.75)
-).astype(int)
+df["torque_high_flag"] = (df["torque_load"] > df["torque_load"].quantile(0.75)).astype(
+    int
+)
 
 df["power_high_flag"] = (
     df["power_consumption"] > df["power_consumption"].quantile(0.75)
@@ -218,16 +221,17 @@ df["multi_sensor_stress_flag"] = (
             "vibration_high_flag",
             "temperature_high_flag",
             "torque_high_flag",
-            "power_high_flag"
+            "power_high_flag",
         ]
-    ].sum(axis=1) >= 2
+    ].sum(axis=1)
+    >= 2
 ).astype(int)
 
 # Analysis-only labels, not for model input
 df["rul_health_band"] = pd.cut(
     df["RUL_hours"],
     bins=[-np.inf, 24, 72, 168, np.inf],
-    labels=["Critical", "Warning", "Watch", "Healthy"]
+    labels=["Critical", "Warning", "Watch", "Healthy"],
 ).astype(str)
 
 df["early_failure_zone"] = (df["RUL_hours"] <= 72).astype(int)

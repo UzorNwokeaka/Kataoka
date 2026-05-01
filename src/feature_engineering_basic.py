@@ -1,7 +1,7 @@
 # Basic Feature Engineering for RUL Prediction
 # This script takes the aligned timeseries dataset and creates basic features
 # like rolling statistics, cumulative runtime, time since installation/maintenance,
-# and simple stress indices. It also handles missing values and validates the output.   
+# and simple stress indices. It also handles missing values and validates the output.
 
 import pandas as pd
 import numpy as np
@@ -27,7 +27,7 @@ date_cols = [
     "timestamp",
     "last_maintenance_time",
     "next_failure_time",
-    "installation_date"
+    "installation_date",
 ]
 
 for col in date_cols:
@@ -46,7 +46,7 @@ sensor_cols = [
     "vibration_level",
     "motor_temperature",
     "torque_load",
-    "power_consumption"
+    "power_consumption",
 ]
 
 # Ensure sensor columns are numeric
@@ -61,33 +61,25 @@ for col in sensor_cols:
 # 12 readings = 72 hours
 # 28 readings = 7 days
 # -----------------------------
-windows = {
-    "24h": 4,
-    "72h": 12,
-    "7d": 28
-}
+windows = {"24h": 4, "72h": 12, "7d": 28}
 
 for col in sensor_cols:
     if col in df.columns:
         for label, window in windows.items():
-            df[f"{col}_rolling_mean_{label}"] = (
-                df.groupby("robot_id")[col]
-                .transform(lambda x: x.rolling(window=window, min_periods=1).mean())
+            df[f"{col}_rolling_mean_{label}"] = df.groupby("robot_id")[col].transform(
+                lambda x: x.rolling(window=window, min_periods=1).mean()
             )
 
-            df[f"{col}_rolling_std_{label}"] = (
-                df.groupby("robot_id")[col]
-                .transform(lambda x: x.rolling(window=window, min_periods=1).std())
+            df[f"{col}_rolling_std_{label}"] = df.groupby("robot_id")[col].transform(
+                lambda x: x.rolling(window=window, min_periods=1).std()
             )
 
-            df[f"{col}_rolling_min_{label}"] = (
-                df.groupby("robot_id")[col]
-                .transform(lambda x: x.rolling(window=window, min_periods=1).min())
+            df[f"{col}_rolling_min_{label}"] = df.groupby("robot_id")[col].transform(
+                lambda x: x.rolling(window=window, min_periods=1).min()
             )
 
-            df[f"{col}_rolling_max_{label}"] = (
-                df.groupby("robot_id")[col]
-                .transform(lambda x: x.rolling(window=window, min_periods=1).max())
+            df[f"{col}_rolling_max_{label}"] = df.groupby("robot_id")[col].transform(
+                lambda x: x.rolling(window=window, min_periods=1).max()
             )
 
 # -----------------------------
@@ -121,24 +113,17 @@ if "time_since_last_maintenance_hours" not in df.columns:
         df["time_since_last_maintenance_hours"] = 0
 
 df["time_since_last_maintenance_hours"] = pd.to_numeric(
-    df["time_since_last_maintenance_hours"],
-    errors="coerce"
+    df["time_since_last_maintenance_hours"], errors="coerce"
 )
 
 # -----------------------------
 # Basic stress indicators
 # -----------------------------
-df["torque_power_stress_index"] = (
-    df["torque_load"] * df["power_consumption"]
-)
+df["torque_power_stress_index"] = df["torque_load"] * df["power_consumption"]
 
-df["thermal_power_stress_index"] = (
-    df["motor_temperature"] * df["power_consumption"]
-)
+df["thermal_power_stress_index"] = df["motor_temperature"] * df["power_consumption"]
 
-df["vibration_torque_stress_index"] = (
-    df["vibration_level"] * df["torque_load"]
-)
+df["vibration_torque_stress_index"] = df["vibration_level"] * df["torque_load"]
 
 df["combined_basic_stress_index"] = (
     df["vibration_level"] * 0.30
@@ -152,30 +137,25 @@ df["combined_basic_stress_index"] = (
 # -----------------------------
 if "maintenance_count_to_date" in df.columns:
     df["maintenance_count_to_date"] = pd.to_numeric(
-        df["maintenance_count_to_date"],
-        errors="coerce"
+        df["maintenance_count_to_date"], errors="coerce"
     )
 else:
     df["maintenance_count_to_date"] = 0
 
-df["has_previous_maintenance"] = np.where(
-    df["maintenance_count_to_date"] > 0,
-    1,
-    0
-)
+df["has_previous_maintenance"] = np.where(df["maintenance_count_to_date"] > 0, 1, 0)
 
 df["recent_maintenance_24h"] = np.where(
     (df["time_since_last_maintenance_hours"] > 0)
     & (df["time_since_last_maintenance_hours"] <= 24),
     1,
-    0
+    0,
 )
 
 df["recent_maintenance_72h"] = np.where(
     (df["time_since_last_maintenance_hours"] > 0)
     & (df["time_since_last_maintenance_hours"] <= 72),
     1,
-    0
+    0,
 )
 
 # -----------------------------
@@ -188,7 +168,7 @@ if "RUL_hours" in df.columns:
     df["rul_health_band"] = pd.cut(
         df["RUL_hours"],
         bins=[-np.inf, 24, 72, 168, np.inf],
-        labels=["Critical", "Warning", "Watch", "Healthy"]
+        labels=["Critical", "Warning", "Watch", "Healthy"],
     )
 
     df["rul_health_band"] = df["rul_health_band"].astype(str)
@@ -224,7 +204,7 @@ new_cols = [
     "has_previous_maintenance",
     "recent_maintenance_24h",
     "recent_maintenance_72h",
-    "rul_health_band"
+    "rul_health_band",
 ]
 
 available_new_cols = [col for col in new_cols if col in df.columns]
