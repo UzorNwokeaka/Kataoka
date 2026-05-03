@@ -62,7 +62,7 @@ for col in categorical_cols:
 
 
 # ============================================================
-# Real-world risk scoring
+# Risk Scoring
 # ============================================================
 def score_sensor_risk(
     vibration_level,
@@ -72,21 +72,11 @@ def score_sensor_risk(
     cumulative_runtime_hours,
     time_since_last_maintenance_hours,
 ):
-    """
-    Creates risk scores across three operational domains:
-    1. Physical degradation: vibration + temperature
-    2. Load/energy stress: torque + power consumption
-    3. Maintenance/lifecycle pressure: runtime + time since maintenance
-    """
-
     physical_risk = 0
     load_risk = 0
     maintenance_risk = 0
     reasons = []
 
-    # -------------------------
-    # Physical degradation risk
-    # -------------------------
     if vibration_level >= 0.85:
         physical_risk += 30
         reasons.append("severe vibration")
@@ -107,9 +97,6 @@ def score_sensor_risk(
         physical_risk += 14
         reasons.append("elevated motor temperature")
 
-    # -------------------------
-    # Load / energy stress risk
-    # -------------------------
     if torque_load >= 220:
         load_risk += 25
         reasons.append("severe torque load")
@@ -130,9 +117,6 @@ def score_sensor_risk(
         load_risk += 12
         reasons.append("elevated power consumption")
 
-    # -------------------------
-    # Maintenance / lifecycle risk
-    # -------------------------
     if cumulative_runtime_hours >= 1900:
         maintenance_risk += 18
         reasons.append("very high cumulative runtime")
@@ -153,15 +137,11 @@ def score_sensor_risk(
         maintenance_risk += 6
         reasons.append("maintenance interval is increasing")
 
-    # Domain caps
     physical_risk = min(physical_risk, 60)
     load_risk = min(load_risk, 50)
     maintenance_risk = min(maintenance_risk, 36)
 
-    raw_total = physical_risk + load_risk + maintenance_risk
-
-    # Scale to 0–100
-    total_risk = min(round(raw_total, 2), 100)
+    total_risk = min(round(physical_risk + load_risk + maintenance_risk, 2), 100)
 
     return total_risk, physical_risk, load_risk, maintenance_risk, reasons
 
@@ -173,44 +153,19 @@ def classify_health(
     load_risk,
     maintenance_risk,
 ):
-    """
-    Final triage logic.
-
-    This combines:
-    - ML-predicted RUL
-    - current physical degradation risk
-    - current load/energy risk
-    - maintenance/runtime risk
-    - interaction/amplification logic
-
-    The goal is to behave like a real industrial decision-support system.
-    """
-
-    # -------------------------
-    # 1. Hard RUL-based overrides
-    # -------------------------
     if rul_hours <= 168:
         return "🔴 Critical"
 
     if rul_hours <= 500:
         return "🟠 Warning"
 
-    # -------------------------
-    # 2. Maintenance amplification
-    # -------------------------
-    # Old/under-maintained machines are more sensitive to otherwise moderate stress.
     amplified_physical = physical_risk + (maintenance_risk * 0.50)
     amplified_load = load_risk + (maintenance_risk * 0.40)
     combined_amplified_stress = amplified_physical + amplified_load
 
-    # -------------------------
-    # 3. Critical cases
-    # -------------------------
-    # Overall risk very high
     if total_risk >= 80:
         return "🔴 Critical"
 
-    # Multiple domains are severe together
     if physical_risk >= 44 and load_risk >= 30:
         return "🔴 Critical"
 
@@ -220,7 +175,6 @@ def classify_health(
     if load_risk >= 40 and maintenance_risk >= 30:
         return "🔴 Critical"
 
-    # Amplified stress becomes severe
     if combined_amplified_stress >= 78:
         return "🔴 Critical"
 
@@ -230,14 +184,9 @@ def classify_health(
     if amplified_load >= 58:
         return "🔴 Critical"
 
-    # -------------------------
-    # 4. Warning cases
-    # -------------------------
-    # Overall medium-high risk
     if total_risk >= 45:
         return "🟠 Warning"
 
-    # One domain clearly elevated
     if physical_risk >= 28:
         return "🟠 Warning"
 
@@ -247,16 +196,12 @@ def classify_health(
     if maintenance_risk >= 24:
         return "🟠 Warning"
 
-    # Moderate signals amplified by age/maintenance
     if combined_amplified_stress >= 42:
         return "🟠 Warning"
 
     if maintenance_risk >= 18 and (physical_risk >= 14 or load_risk >= 12):
         return "🟠 Warning"
 
-    # -------------------------
-    # 5. Moderate cases
-    # -------------------------
     if total_risk >= 25:
         return "🟡 Moderate Risk"
 
@@ -292,13 +237,12 @@ def recommend_action(health_status):
 
 
 def calculate_failure_probability(risk_score):
-    """
-    Business-friendly risk estimate derived from risk score.
-    This is not a calibrated statistical probability.
-    """
     return round(min(100, risk_score * 1.15), 2)
 
 
+# ============================================================
+# Visuals
+# ============================================================
 def create_risk_gauge(risk_score):
     fig = go.Figure(
         go.Indicator(
@@ -320,6 +264,65 @@ def create_risk_gauge(risk_score):
 
     fig.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20))
     return fig
+
+
+def create_risk_breakdown_chart(physical_risk, load_risk, maintenance_risk):
+    categories = [
+        "Physical\n(Vibration + Temp)",
+        "Load/Energy\n(Torque + Power)",
+        "Maintenance\n(Runtime + Service)",
+    ]
+    values = [physical_risk, load_risk, maintenance_risk]
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=categories,
+                y=values,
+                text=values,
+                textposition="auto",
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title="Risk Contribution Breakdown",
+        yaxis_title="Risk Score",
+        height=300,
+        margin=dict(l=20, r=20, t=50, b=40),
+    )
+
+    return fig
+
+
+def format_health_status(health_status):
+    if "Critical" in health_status:
+        colour = "#E74C3C"
+        background = "#FDEDEC"
+    elif "Warning" in health_status:
+        colour = "#E67E22"
+        background = "#FEF5E7"
+    elif "Moderate" in health_status:
+        colour = "#B7950B"
+        background = "#FEF9E7"
+    else:
+        colour = "#239B56"
+        background = "#EAFaf1"
+
+    return f"""
+    <div style="
+        padding: 20px;
+        border-radius: 16px;
+        background-color: {background};
+        border: 2px solid {colour};
+        text-align: center;
+        margin-bottom: 10px;">
+        <h1 style="color:{colour}; margin:0;">{health_status}</h1>
+        <p style="margin:8px 0 0 0; color:#333;">
+            Final decision based on RUL, real-time risk, and maintenance context.
+        </p>
+    </div>
+    """
 
 
 def explain_prediction(
@@ -346,7 +349,7 @@ def explain_prediction(
 
 
 # ============================================================
-# Build model input
+# Build Model Input
 # ============================================================
 def build_input_row(
     vibration_level,
@@ -377,14 +380,12 @@ def build_input_row(
     row["maintenance_count_to_date"] = maintenance_count_to_date
     row["last_downtime_hours"] = last_downtime_hours
 
-    # Lifecycle proxy features
     if "time_index" in row:
         row["time_index"] = cumulative_runtime_hours / 6
 
     if "lifecycle_progress" in row:
         row["lifecycle_progress"] = min(cumulative_runtime_hours / 2000, 1.0)
 
-    # Derived stress features
     if "torque_power_stress_index" in row:
         row["torque_power_stress_index"] = torque_load * power_consumption
 
@@ -413,7 +414,6 @@ def build_input_row(
     if "energy_per_runtime_hour" in row:
         row["energy_per_runtime_hour"] = power_consumption
 
-    # Binary stress flags used by training features if present
     if "vibration_high_flag" in row:
         row["vibration_high_flag"] = int(vibration_level >= 0.60)
 
@@ -442,7 +442,7 @@ def build_input_row(
 
 
 # ============================================================
-# Prediction function
+# Prediction Function
 # ============================================================
 def predict_rul(
     vibration_level,
@@ -489,7 +489,7 @@ def predict_rul(
         time_since_last_maintenance_hours,
     )
 
-    health_status = classify_health(
+    health_status_text = classify_health(
         predicted_rul,
         total_risk,
         physical_risk,
@@ -497,9 +497,16 @@ def predict_rul(
         maintenance_risk,
     )
 
-    recommendation = recommend_action(health_status)
+    health_status_card = format_health_status(health_status_text)
+    recommendation = recommend_action(health_status_text)
     failure_probability = calculate_failure_probability(total_risk)
+
     risk_gauge = create_risk_gauge(total_risk)
+    risk_breakdown = create_risk_breakdown_chart(
+        physical_risk,
+        load_risk,
+        maintenance_risk,
+    )
 
     explanation = explain_prediction(
         reasons,
@@ -520,18 +527,19 @@ def predict_rul(
 
     return (
         round(predicted_rul, 2),
-        health_status,
+        health_status_card,
         total_risk,
         f"{failure_probability}%",
         recommendation,
         confidence_range,
         explanation,
         risk_gauge,
+        risk_breakdown,
     )
 
 
 # ============================================================
-# Dropdown values
+# Dropdown Values
 # ============================================================
 model_types = sorted(reference_df["model_type"].dropna().astype(str).unique().tolist())
 locations = sorted(
@@ -559,12 +567,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
         - **real-time sensor risk scoring**
         - **maintenance/runtime risk amplification**
         - **rule-based safety overrides**
-        - **maintenance recommendations**
+        - **visual decision support**
         """
     )
 
     with gr.Row():
-        with gr.Column():
+        with gr.Column(scale=1):
             gr.Markdown("## Sensor Inputs")
 
             vibration_level = gr.Slider(
@@ -643,12 +651,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
 
             submit_btn = gr.Button("Predict RUL", variant="primary")
 
-        with gr.Column():
+        with gr.Column(scale=1):
             gr.Markdown("## Prediction Output")
 
             predicted_rul = gr.Number(label="Predicted RUL (Hours)")
 
-            health_status = gr.Textbox(label="Final Health Status")
+            health_status = gr.HTML(label="Final Health Status")
 
             risk_score = gr.Slider(
                 0,
@@ -662,6 +670,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
             failure_probability = gr.Textbox(label="Failure Probability (%)")
 
             risk_gauge = gr.Plot(label="Real-Time Risk Meter")
+
+            risk_breakdown = gr.Plot(label="Risk Contribution Breakdown")
 
             maintenance_recommendation = gr.Textbox(
                 label="Maintenance Recommendation",
@@ -684,14 +694,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
 
                 - **Predicted RUL** estimates remaining useful operating hours.
                 - **Risk Score** shows current operating risk from 0 to 100.
-                - **Failure Probability** is a business-friendly estimate derived from risk score.
-                - **Healthy**: normal operation.
-                - **Moderate Risk**: monitor and plan preventive maintenance.
-                - **Warning**: elevated stress or maintenance/runtime risk.
-                - **Critical**: urgent inspection recommended.
-
-                The final health status is not based on RUL alone. It also considers
-                physical degradation, load/energy stress, maintenance delay, and runtime.
+                - **Risk Breakdown** shows whether risk comes from physical degradation,
+                  load/energy stress, or maintenance/runtime pressure.
+                - **Final Health Status** combines RUL, risk score, and real-world safety logic.
                 """
             )
 
@@ -713,6 +718,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
                     risk_score,
                     failure_probability,
                     risk_gauge,
+                    risk_breakdown,
                     maintenance_recommendation,
                     confidence_range,
                     explanation,
@@ -744,6 +750,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
             confidence_range,
             explanation,
             risk_gauge,
+            risk_breakdown,
         ],
     )
 
