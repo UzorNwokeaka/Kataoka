@@ -31,5 +31,11 @@ This project builds an end-to-end machine learning system to estimate Remaining 
 ## Note
 Large datasets and models are excluded from GitHub for performance reasons.
 
+## Latest Update
+- Added real-time risk scoring engine
+- Added risk breakdown visualization
+- Improved health classification logic
+- Added explainability layer
+
 ## 🔗 Author
 Uzor Nwokeaka
