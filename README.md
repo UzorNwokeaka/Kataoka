@@ -1,7 +1,7 @@
 # RUL Predictive Maintenance System (Kataoka Robotics)
 
 ## Overview
-This project builds an end-to-end machine learning system to estimate Remaining Useful Life (RUL) of industrial robotic components using time-series sensor data
+This project builds an end-to-end machine learning system to estimate Remaining Useful Life (RUL) of industrial robotic components using time-series sensor data.
 
 ## Key Features
 - Time-series alignment of sensor, maintenance, and failure data
