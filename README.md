@@ -37,5 +37,11 @@ Large datasets and models are excluded from GitHub for performance reasons.
 - Improved health classification logic
 - Added explainability layer
 
+## Live Demo
+
+The deployed dashboard is available here:
+
+https://huggingface.co/spaces/Uzordinma/Kataoka-rul-dashboard
+
 ## 🔗 Author
 Uzor Nwokeaka
